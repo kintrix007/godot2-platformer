@@ -10,7 +10,9 @@ var air_friction = 0.2
 
 var vel = Vector2(0, 0)
 var is_hitting_ground = false
-var hitting_wall = 0
+var time_since_on_wall = 0.0
+var wall_direction = 0
+var is_hitting_wall = false
 var time_airborne = 0.0
 var prev_jump_key = true
 
@@ -23,11 +25,19 @@ func _timeout():
 func _process(delta):
 	var dir = int(Input.is_action_pressed("right")) - int(Input.is_action_pressed("left"))
 	var is_grounded = time_airborne <= 0.1
+	var is_on_wall = time_since_on_wall <= 0.5 and abs(vel.x) <= 20.0
+	if not is_on_wall:
+		wall_direction = 0
+		time_since_on_wall = 999
 	
 	var jump_key = Input.is_action_pressed("jump")
 	if is_grounded and jump_key and not prev_jump_key:
 		vel.y = -jump_strength
-	prev_jump_key = jump_key
+		time_airborne = 999
+	
+	if is_on_wall and not is_grounded and jump_key and not prev_jump_key:
+		vel.y = -jump_strength * 0.6
+		vel.x = -wall_direction * 700
 	
 	var friction
 	if is_grounded:
@@ -40,8 +50,11 @@ func _process(delta):
 		friction = air_friction
 	
 	vel.x *= pow(friction, delta)
-	vel.x = clamp(vel.x, -max_speed, max_speed)
+	if is_grounded:
+		vel.x = clamp(vel.x, -max_speed, max_speed)
 	vel += gravity * delta
+	if is_on_wall:
+		vel.y = min(vel.y, 100) 
 	
 	var attempted_move = vel * delta
 	var remaining = self.move(attempted_move)
@@ -49,16 +62,18 @@ func _process(delta):
 	
 #	print("rem: ", remaining)
 	is_hitting_ground = false
-	hitting_wall = 0
+	is_hitting_wall = false
 	var i = 0
 	while self.is_colliding() and remaining.length_squared() >= 0.1 and i < 5:
 		var normal = self.get_collision_normal()
 		
 		is_hitting_ground = is_hitting_ground or normal.dot(Vector2(0, -1)) >= 0.7
-		if normal.dot(Vector2(-1, 0)) >= 0.7:
-			hitting_wall = 1
-		if normal.dot(Vector2(1, 0)) >= 0.7:
-			hitting_wall = -1
+		if wall_direction == 0 and normal.dot(Vector2(-1, 0)) >= 0.7:
+			wall_direction = 1
+			is_hitting_wall = true
+		elif wall_direction == 0 and normal.dot(Vector2(1, 0)) >= 0.7:
+			wall_direction = -1
+			is_hitting_wall = true
 		
 		var tangent = -normal.tangent() # Get the tangent 90 degrees clockwise
 		remaining = tangent * remaining.dot(tangent)
@@ -70,7 +85,12 @@ func _process(delta):
 #	print("vel: ", vel, ",\tactual move: ", actual_move)
 	vel = actual_move / delta
 	
+	prev_jump_key = jump_key
 	if is_hitting_ground:
 		time_airborne = 0.0
 	else:
 		time_airborne += delta
+	if is_hitting_wall:
+		time_since_on_wall = 0.0
+	else:
+		time_since_on_wall += delta
