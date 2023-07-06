@@ -46,7 +46,9 @@ func _process(delta):
 		if sign(vel.x) != sign(dir):
 			vel.x *= pow(friction, delta)
 	else:
-		vel.x += dir * air_speed * delta
+		if abs(vel.x) <= abs(max_speed):
+			vel.x += dir * air_speed * delta
+			vel.x = clamp(vel.x, -max_speed, max_speed)
 		friction = air_friction
 	
 	vel.x *= pow(friction, delta)
