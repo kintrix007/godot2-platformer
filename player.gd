@@ -52,9 +52,10 @@ func _process(delta):
 		friction = air_friction
 	
 	vel.x *= pow(friction, delta)
+	vel += gravity * delta
+	
 	if is_grounded:
 		vel.x = clamp(vel.x, -max_speed, max_speed)
-	vel += gravity * delta
 	if is_on_wall:
 		vel.y = min(vel.y, 100) 
 	
@@ -77,8 +78,10 @@ func _process(delta):
 			wall_direction = -1
 			is_hitting_wall = true
 		
-		var tangent = -normal.tangent() # Get the tangent 90 degrees clockwise
+		var tangent = normal.tangent() # It does not matter which tangent
 		remaining = tangent * remaining.dot(tangent)
+		# For some reason it still thinks there is a collision,
+		# even if it is parallel...
 		var new_remaining = self.move(remaining)
 		actual_move += remaining - new_remaining
 		remaining = new_remaining
