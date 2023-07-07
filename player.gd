@@ -10,10 +10,10 @@ var air_friction = 0.2
 
 var vel = Vector2(0, 0)
 var is_hitting_ground = false
-var time_since_on_wall = 0.0
+var time_since_on_wall = 999.0
 var wall_direction = 0
 var is_hitting_wall = false
-var time_airborne = 0.0
+var time_airborne = 999.0
 var prev_jump_key = true
 
 func _ready():
